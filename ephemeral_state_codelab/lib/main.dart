@@ -81,7 +81,16 @@ class CounterTile extends StatelessWidget {
       color: counter.color,
       child: ListTile(
         title: Text(counter.label),
-        subtitle: Text('Value: ${counter.value}'),
+        subtitle: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          transitionBuilder: (child, animation) =>
+              ScaleTransition(scale: animation, child: child),
+          child: Text(
+            'Value: ${counter.value}',
+            key: ValueKey(counter.value),
+            style: const TextStyle(fontSize: 18),
+          ),
+        ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -99,7 +108,81 @@ class CounterTile extends StatelessWidget {
             ),
           ],
         ),
-        onTap: () {
+        onTap: () async {
+          await showDialog(
+            context: context,
+            builder: (context) {
+              Color selectedColor = counter.color;
+              TextEditingController labelController =
+                  TextEditingController(text: counter.label);
+              return StatefulBuilder(
+                builder: (context, setState) {
+                  return AlertDialog(
+                    title: const Text('Edit Counter'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: labelController,
+                          decoration: const InputDecoration(labelText: 'Label'),
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            ...[
+                              Colors.blue,
+                              Colors.red,
+                              Colors.green,
+                              Colors.orange,
+                              Colors.purple,
+                              Colors.teal,
+                            ].map((color) => GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      selectedColor = color;
+                                    });
+                                  },
+                                  child: Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: color,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: selectedColor == color
+                                            ? Colors.black
+                                            : Colors.transparent,
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
+                                )),
+                          ],
+                        ),
+                      ],
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          GlobalState.instance.changeLabel(index, labelController.text);
+                          GlobalState.instance.changeColor(index, selectedColor);
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text('Save'),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+          );
         },
       ),
     );
