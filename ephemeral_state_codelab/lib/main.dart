@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Provider is used to share GlobalState across the whole app
 import 'package:global_state/global_state.dart'; // Imports your custom global state file
+import 'package:flutter_colorpicker/flutter_colorpicker.dart'; // For color picking dialog
 
 void main() {
   runApp(
@@ -91,17 +92,20 @@ class CounterTile extends StatelessWidget {
             // Decrement button
             IconButton(
               icon: const Icon(Icons.remove),
-              onPressed: () => Provider.of<GlobalState>(context, listen: false).decrement(index),
+              onPressed: () =>
+                  Provider.of<GlobalState>(context, listen: false).decrement(index),
             ),
             // Increment button
             IconButton(
               icon: const Icon(Icons.add),
-              onPressed: () => Provider.of<GlobalState>(context, listen: false).increment(index),
+              onPressed: () =>
+                  Provider.of<GlobalState>(context, listen: false).increment(index),
             ),
             // Delete button
             IconButton(
               icon: const Icon(Icons.delete),
-              onPressed: () => Provider.of<GlobalState>(context, listen: false).removeCounter(index),
+              onPressed: () =>
+                  Provider.of<GlobalState>(context, listen: false).removeCounter(index),
             ),
           ],
         ),
@@ -128,10 +132,15 @@ class CounterTile extends StatelessWidget {
                           decoration: const InputDecoration(labelText: 'Label'),
                         ),
                         const SizedBox(height: 10),
-                        // Color picker (shows multiple selectable colors)
-                        Wrap(
-                          spacing: 8,
+
+                        // === Color selection feature ===
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
+                            const Text('Color:'),
+                            const SizedBox(width: 8),
+
+                            // Default color options (blue, red, green, etc.)
                             ...[
                               Colors.blue,
                               Colors.red,
@@ -139,30 +148,132 @@ class CounterTile extends StatelessWidget {
                               Colors.orange,
                               Colors.purple,
                               Colors.teal,
-                            ].map((color) => GestureDetector(
+                            ].map(
+                              (color) => Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 2),
+                                child: GestureDetector(
                                   onTap: () {
+                                    // Update selectedColor when tapped
                                     setState(() {
                                       selectedColor = color;
                                     });
                                   },
                                   child: Container(
-                                    width: 32,
-                                    height: 32,
+                                    width: 28,
+                                    height: 28,
                                     decoration: BoxDecoration(
                                       color: color,
                                       shape: BoxShape.circle,
                                       border: Border.all(
-                                        // Highlight border if this color is selected
                                         color: selectedColor == color
                                             ? Colors.black
-                                            : Colors.transparent,
-                                        width: 2,
+                                            : Colors.grey,
+                                        width: selectedColor == color ? 2 : 1,
                                       ),
                                     ),
                                   ),
-                                )),
+                                ),
+                              ),
+                            ),
+
+                            // "Other..." option → opens advanced color picker dialog
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 2),
+                              child: GestureDetector(
+                                onTap: () async {
+                                  Color tempColor = selectedColor;
+                                  await showDialog(
+                                    context: context,
+                                    builder: (context) {
+                                      TextEditingController hexController =
+                                          TextEditingController(
+                                        text:
+                                            '#${tempColor.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
+                                      );
+                                      return AlertDialog(
+                                        title: const Text('Pick a color'),
+                                        content: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            // Full-featured color picker widget
+                                            ColorPicker(
+                                              pickerColor: tempColor,
+                                              onColorChanged: (color) {
+                                                tempColor = color;
+                                                hexController.text =
+                                                    '#${color.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+                                              },
+                                              enableAlpha: false,
+                                              displayThumbColor: true,
+                                              pickerAreaHeightPercent: 0.7,
+                                            ),
+                                            const SizedBox(height: 10),
+
+                                            // Optional hex input field
+                                            TextField(
+                                              controller: hexController,
+                                              decoration: const InputDecoration(
+                                                labelText: 'Hex code',
+                                                prefixText: '#',
+                                              ),
+                                              maxLength: 6,
+                                              onChanged: (value) {
+                                                final hex = value.replaceAll('#', '');
+                                                if (hex.length == 6) {
+                                                  try {
+                                                    tempColor = Color(
+                                                        int.parse('FF$hex', radix: 16));
+                                                  } catch (_) {}
+                                                }
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.of(context).pop(),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () {
+                                              // Save the chosen custom color
+                                              setState(() {
+                                                selectedColor = tempColor;
+                                              });
+                                              Navigator.of(context).pop();
+                                            },
+                                            child: const Text('Select'),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                },
+                                child: Container(
+                                  width: 28,
+                                  height: 28,
+                                  decoration: BoxDecoration(
+                                    color: selectedColor,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.black,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: const Center(
+                                    child: Icon(
+                                      Icons.color_lens,
+                                      size: 18,
+                                      color: Colors.white,
+                                    ), // Custom color button
+                                  ),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
+                        // === End of color feature ===
                       ],
                     ),
                     actions: [
